@@ -116,7 +116,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       <div className="upload-help">
         <div className="help-item">
           <AlertCircle size={16} />
-          <span>Supported formats: PLY (ASCII/Binary), SPLAT</span>
+          <span>Supported formats: PLY, SPLAT</span>
         </div>
       </div>
     </div>
