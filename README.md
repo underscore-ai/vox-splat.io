@@ -1,10 +1,15 @@
 ## ✅ Project TODO List
 
 - [x] Point cloud projection
-- [ ] Control using cursor and keyboard
+- [x] Control using cursor and keyboard
 - [ ] Add splat support
 - [ ] Custom WebGL shaders for ellipsoid visualization
 - [ ] Larger datasets & cloud storage support
+- [ ] bottom control panel and keyboard shortcuts
+- [ ] properties improvement
+
+
+![Screenshot from 2025-05-27 02-22-23](https://github.com/user-attachments/assets/096b5bf1-9a29-433f-97d3-f4ad3f825fa3)
 
 # Getting Started with Create React App
 
