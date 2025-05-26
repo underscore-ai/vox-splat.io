@@ -1,4 +1,11 @@
-<<<<<<< HEAD
+## ✅ Project TODO List
+
+- [x] Point cloud projection
+- [ ] Control using cursor and keyboard
+- [ ] Add splat support
+- [ ] Custom WebGL shaders for ellipsoid visualization
+- [ ] Larger datasets & cloud storage support
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
