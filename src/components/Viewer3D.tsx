@@ -317,22 +317,25 @@ function PointCloud({
   const originalColorsRef = useRef<Float32Array | null>(null);
   const { camera } = useThree();
 
-  const geometry = useMemo(() => {
-    const geometry = new THREE.BufferGeometry();
-    
-    // Chunk size for better performance
-    const CHUNK_SIZE = 100000; // Adjust based on performance needs
-    const totalPoints = data.points.length;
-    const positions = new Float32Array(totalPoints * 3);
-    const colors = new Float32Array(totalPoints * 3);
-    const sizes = new Float32Array(totalPoints);
+  // Implement LOD system
+  const LOD_LEVELS = [1.0, 0.5, 0.25, 0.125]; // Different detail levels
+  const LOD_DISTANCES = [10, 20, 40, 80]; // Distances at which to switch LODs
+  const [currentLOD, setCurrentLOD] = useState(0);
 
-    // Process points in chunks
-    for (let i = 0; i < totalPoints; i += CHUNK_SIZE) {
-      const chunkEnd = Math.min(i + CHUNK_SIZE, totalPoints);
-      for (let j = i; j < chunkEnd; j++) {
-        const point = data.points[j];
-        const idx = j * 3;
+  // Create geometries for different LOD levels using useMemo
+  const lodGeometries = useMemo(() => {
+    return LOD_LEVELS.map(level => {
+      const stride = Math.floor(1 / level);
+      const pointCount = Math.floor(data.points.length * level);
+      
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(pointCount * 3);
+      const colors = new Float32Array(pointCount * 3);
+      
+      let vertexIndex = 0;
+      for (let i = 0; i < data.points.length; i += stride) {
+        const point = data.points[i];
+        const idx = vertexIndex * 3;
         
         positions[idx] = point.position[0];
         positions[idx + 1] = point.position[1];
@@ -342,83 +345,78 @@ function PointCloud({
         colors[idx + 1] = point.color[1] / 255;
         colors[idx + 2] = point.color[2] / 255;
         
-        // Dynamic point size based on distance from camera
-        const distance = new THREE.Vector3(
-          point.position[0],
-          point.position[1],
-          point.position[2]
-        ).distanceTo(camera.position);
-        sizes[j] = Math.max(pointSize * (50 / distance), pointSize * 0.5);
+        vertexIndex++;
+      }
+      
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.computeBoundingSphere();
+      
+      return geometry;
+    });
+  }, [data.points]);
+
+  // Update LOD based on camera distance
+  useFrame(() => {
+    if (!pointsRef.current || !lodGeometries[0].boundingSphere) return;
+
+    const boundingSphere = lodGeometries[0].boundingSphere;
+    const distance = camera.position.distanceTo(boundingSphere.center);
+    
+    let newLOD = LOD_LEVELS.length - 1;
+    for (let i = 0; i < LOD_DISTANCES.length; i++) {
+      if (distance < LOD_DISTANCES[i]) {
+        newLOD = i;
+        break;
+      }
+    }
+    
+    if (newLOD !== currentLOD) {
+      setCurrentLOD(newLOD);
+      if (pointsRef.current) {
+        pointsRef.current.geometry = lodGeometries[newLOD];
       }
     }
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    
-    // Add bounding box for frustum culling
-    geometry.computeBoundingBox();
-    geometry.computeBoundingSphere();
-    
-    colorsRef.current = colors;
-    originalColorsRef.current = colors.slice();
-    
-    return geometry;
-  }, [data, camera.position, pointSize]);
+    // Frustum culling optimization
+    const frustum = new THREE.Frustum();
+    frustum.setFromProjectionMatrix(
+      new THREE.Matrix4().multiplyMatrices(
+        camera.projectionMatrix,
+        camera.matrixWorldInverse
+      )
+    );
 
-  // Update visibility based on frustum culling
-  useFrame(({ camera }) => {
-    if (pointsRef.current && materialRef.current) {
-      const frustum = new THREE.Frustum();
-      frustum.setFromProjectionMatrix(
-        new THREE.Matrix4().multiplyMatrices(
-          camera.projectionMatrix,
-          camera.matrixWorldInverse
-        )
-      );
+    // Only render if within view frustum and not too far
+    const currentBoundingSphere = lodGeometries[currentLOD].boundingSphere;
+    if (currentBoundingSphere) {
+      const isVisible = frustum.intersectsSphere(currentBoundingSphere);
+      const isTooFar = distance > LOD_DISTANCES[LOD_DISTANCES.length - 1] * 2;
+      pointsRef.current.visible = isVisible && !isTooFar;
+    }
 
-      // Only render if within view frustum
-      if (geometry.boundingSphere) {
-        pointsRef.current.visible = frustum.intersectsSphere(geometry.boundingSphere);
-      }
-
-      // Update point sizes based on distance
-      const sizes = geometry.attributes.size as THREE.BufferAttribute;
-      const positions = geometry.attributes.position;
-      
-      for (let i = 0; i < positions.count; i++) {
-        const point = new THREE.Vector3();
-        point.fromBufferAttribute(positions, i);
-        const distance = point.distanceTo(camera.position);
-        sizes.array[i] = Math.max(pointSize * (50 / distance), pointSize * 0.5);
-      }
-      sizes.needsUpdate = true;
+    // Optimize point sizes based on distance and LOD
+    if (materialRef.current) {
+      const baseSize = pointSize * (1 + currentLOD * 0.5); // Increase size for lower LODs
+      const distanceScale = Math.max(0.5, Math.min(2.0, 50 / distance));
+      materialRef.current.size = baseSize * distanceScale;
     }
   });
 
-  // Update colors for selected points
+  // Memory cleanup
   useEffect(() => {
-    if (colorsRef.current && originalColorsRef.current && geometry.attributes.color) {
-      const colors = colorsRef.current;
-      const originalColors = originalColorsRef.current;
-
-      // Reset colors
-      colors.set(originalColors);
-
-      // Highlight selected points
-      selectedPoints.forEach((index) => {
-        const i = index * 3;
-        colors[i] = 1.0;      // Full red
-        colors[i + 1] = 1.0;  // Full green
-        colors[i + 2] = 0.0;  // No blue = yellow
+    return () => {
+      lodGeometries.forEach(geometry => {
+        geometry.dispose();
       });
-
-      (geometry.attributes.color as THREE.BufferAttribute).needsUpdate = true;
-    }
-  }, [selectedPoints, geometry.attributes.color]);
+      if (materialRef.current) {
+        materialRef.current.dispose();
+      }
+    };
+  }, [lodGeometries]);
 
   return (
-    <points ref={pointsRef} geometry={geometry}>
+    <points ref={pointsRef} geometry={lodGeometries[currentLOD]}>
       <pointsMaterial
         ref={materialRef}
         vertexColors={true}
@@ -426,7 +424,6 @@ function PointCloud({
         opacity={0.8}
         sizeAttenuation={true}
         size={pointSize}
-        // Enable depth testing for better performance
         depthTest={true}
         depthWrite={true}
       />
