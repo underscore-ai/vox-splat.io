@@ -40,6 +40,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 80px; /* Fixed height for header */
 }
 
 .header-left {
@@ -83,13 +84,49 @@ body {
 /* Main Content */
 .app-main {
   flex: 1;
-  padding: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2rem;
   background: var(--background);
-  padding-bottom: calc(2rem + 140px) !important; /* Adjust based on footer height */
+  position: relative;
+  min-height: 0; /* Allow content to shrink */
+}
+
+/* Viewport specific styles */
+.viewport-main {
+  padding: 0;
+  margin: 0;
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.viewer-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.viewer-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+}
+
+/* Adjust main content when header is not present */
+.App:not(:has(.app-header)) .app-main {
+  height: 100vh;
+  padding: 0;
 }
 
 /* Upload Container */
@@ -99,6 +136,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  margin-top: 2rem; /* Add spacing from header */
 }
 
 .upload-area {
@@ -287,18 +325,29 @@ body {
   transform: translateY(-1px);
 }
 
-/* Viewer Container */
-.viewer-container {
+/* Tool-specific cursors */
+.viewer-container[data-tool="box-select"] {
+  cursor: crosshair;
+}
+
+.viewer-container[data-tool="brush-select"] {
+  cursor: none;
+}
+
+.viewer-container[data-tool="lasso-select"] {
+  cursor: crosshair;
+}
+
+/* Custom brush cursor */
+.brush-cursor {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw !important;
-  height: 100vh !important;
-  border-radius: 0;
-  overflow: hidden;
-  background: #1a1a1a;
-  border: none;
-  z-index: 1;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
 }
 
 .viewer-container > canvas {
@@ -805,31 +854,25 @@ body {
 }
 
 /* Properties Window Styles */
-.slider-item {
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.slider-item label {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-
 .slider-container {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   width: 100%;
+  padding: 0.25rem 0;
 }
 
 .slider-container input[type="range"] {
   flex: 1;
+  min-width: 0;
+  width: calc(100% - 4rem);
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   outline: none;
+  cursor: pointer;
 }
 
 .slider-container input[type="range"]::-webkit-slider-thumb {
@@ -841,34 +884,62 @@ body {
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.slider-container input[type="range"]::-webkit-slider-thumb:hover {
-  background: var(--primary-dark);
-  transform: scale(1.2);
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .slider-container input[type="range"]::-moz-range-thumb {
   width: 12px;
   height: 12px;
   background: var(--primary);
-  border: none;
+  border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--primary-dark);
+  transform: scale(1.1);
+}
+
 .slider-container input[type="range"]::-moz-range-thumb:hover {
   background: var(--primary-dark);
-  transform: scale(1.2);
+  transform: scale(1.1);
+}
+
+.slider-container input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(0.9);
+}
+
+.slider-container input[type="range"]:active::-moz-range-thumb {
+  transform: scale(0.9);
 }
 
 .slider-value {
-  min-width: 3.5rem;
+  min-width: 3rem;
+  max-width: 3.5rem;
   font-family: monospace;
   font-size: 0.85rem;
   color: var(--text-secondary);
-  text-align: right;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.slider-item {
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.slider-item label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 /* Viewport Controls */
@@ -921,6 +992,10 @@ body {
   transform: translateY(0);
 }
 
+.control-button-disabled {
+  opacity: 0.5;
+}
+
 /* Add hover tooltip */
 .control-button {
   position: relative;
@@ -947,4 +1022,224 @@ body {
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(-4px);
+}
+
+/* Object Highlight Animation */
+@keyframes highlightObject {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(3);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+.object-highlight {
+  animation: highlightObject 1s ease-out;
+}
+
+.object-name {
+  cursor: pointer;
+  transition: color 0.2s ease;
+  position: relative;
+  display: inline-block;
+}
+
+.object-name:hover {
+  color: var(--primary);
+}
+
+.object-name::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+.object-name:hover::after {
+  transform: scaleX(1);
+}
+
+/* Camera Tools Panel renamed to Editing Tools Panel */
+.editing-tools-panel {
+  position: fixed;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(26, 26, 26, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+.editing-tool-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editing-tool-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
+}
+
+.editing-tool-button:active {
+  transform: translateX(0);
+}
+
+.editing-tool-button.active {
+  background: var(--primary);
+  color: white;
+}
+
+/* Brush Tool Container */
+.brush-tool-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brush-tool-container.active {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.brush-size-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+}
+
+.brush-size-control input[type="range"] {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+.brush-size-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.brush-size-control input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.brush-size-value {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* Selection Overlay */
+.viewer-container {
+  position: relative;
+}
+
+.viewer-container[data-tool="box-select"] {
+  cursor: crosshair;
+}
+
+.viewer-container[data-tool="brush-select"] {
+  cursor: none;
+}
+
+.viewer-container[data-tool="lasso-select"] {
+  cursor: crosshair;
+}
+
+/* Hover tooltips */
+.editing-tool-button {
+  position: relative;
+}
+
+.editing-tool-button::after {
+  content: attr(title);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.editing-tool-button:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) translateX(12px);
+}
+
+/* Selection canvas styles */
+.selection-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translate(-20px, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+}
+
+/* Tool separator */
+.tool-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 0;
+}
+
+/* Fullscreen adjustments */
+:fullscreen .editing-tools-panel {
+  left: 32px;
 }

@@ -16,6 +16,7 @@ interface FilePropertiesProps {
   onToggleVisibility: (objectId: string) => void;
   onRemoveObject: (objectId: string) => void;
   onUpdatePointSize: (objectId: string, size: number) => void;
+  onObjectHighlight: (objectId: string) => void;
 }
 
 const FileProperties: React.FC<FilePropertiesProps> = ({
@@ -24,6 +25,7 @@ const FileProperties: React.FC<FilePropertiesProps> = ({
   onToggleVisibility,
   onRemoveObject,
   onUpdatePointSize,
+  onObjectHighlight,
 }) => {
   const nodeRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
 
@@ -43,7 +45,9 @@ const FileProperties: React.FC<FilePropertiesProps> = ({
           {objects.map((obj) => (
             <div key={obj.id} className="object-section">
               <div className="object-header">
-                <h3>{obj.data.metadata.fileName}</h3>
+                <h3 className="object-name" onClick={() => onObjectHighlight(obj.id)}>
+                  {obj.data.metadata.fileName}
+                </h3>
                 <div className="object-actions">
                   <button
                     className="action-button"
