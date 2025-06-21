@@ -1,23 +1,17 @@
-## ✅ Project TODO List
+## Project TODO List
 
 - [x] Point cloud projection
 - [x] Control using cursor and keyboard
-- [ ] Add splat support
+- [ ] Add splat support(Centroid point based model supported currently, can still open your ply files for a preview)
 - [ ] Custom WebGL shaders for ellipsoid visualization
 - [ ] Larger datasets & cloud storage support
-- [ ] bottom control panel and keyboard shortcuts
-- [ ] properties improvement
+- [ ] Bottom control panel and keyboard shortcuts
+- [ ] Properties improvement
 
 
 ![Screenshot from 2025-05-27 02-22-23](https://github.com/user-attachments/assets/096b5bf1-9a29-433f-97d3-f4ad3f825fa3)
 
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
-## Available Scripts
-
-In the project directory, you can run:
+# Setup
 
 ### `npm start`
 
@@ -52,10 +46,6 @@ Instead, it will copy all the configuration files and the transitive dependencie
 
 You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
+> [!NOTE]
+> This is an experimental project, some features might not work as desired. Please feel free to contribute to the project.
 
